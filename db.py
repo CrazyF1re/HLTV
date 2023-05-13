@@ -32,6 +32,7 @@ sql.execute("""CREATE TABLE IF NOT EXISTS timezone (
     )""")
 database.commit()
 
+
 #таблица прошедших и текущих матчей команд (first_team, second_team, match_id, time, score) 
 sql.execute("""CREATE TABLE IF NOT EXISTS matches (
     first_team TEXT,

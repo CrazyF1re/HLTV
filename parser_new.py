@@ -3,13 +3,10 @@ from bs4 import BeautifulSoup
 import time 
 from selenium import webdriver
 import db
-
+import datetime
 
 def selenium_get(url):
-    options = webdriver.ChromeOptions()
-    options.add_argument('--no-sandbox')
-    options.add_argument("--headless") 
-    driver = webdriver.Chrome(options=options)
+    driver = webdriver.Chrome()
     driver.maximize_window()
     try:
         driver.get(url=url) 
@@ -19,7 +16,65 @@ def selenium_get(url):
     finally:
         driver.close()
         driver.quit()
-    
+
+
+
+def parse_all_actual_teams():
+    now_time = datetime.date.today()
+    for i in range(14000):
+        print(i)
+        time.sleep(0.4)
+        resp = requests.get(f"https://www.hltv.org/team/{i}/_")
+        soup = BeautifulSoup(resp.text,"html.parser")
+        if soup.find('div',class_ = 'teamProfile'):#если нашлась команда, а не пустая страница тогда идем дальше
+
+            if  soup.find('table', class_='table-container match-table'):#если есть последние матчи тогда идем дальше
+
+                if soup.find('tr',class_ = 'team-row').find('div',class_='score-cell').text == '-:-':#если есть матчи в ближайшие дни, тогда дату ставим сегодняшнюю
+                    last_time_match = now_time
+                else:
+                    last_time_match = last_time_match=soup.find('tr',class_ = 'team-row').find('span').text.split('/')
+                    last_time_match = datetime.date(int(last_time_match[2]),int(last_time_match[1]),int(last_time_match[0]))  
+                time_delta = (now_time-last_time_match).days
+                
+                if time_delta<180:#если последний матч был сыгран в ближайшие 180 дней, тогда записываем команду
+                    soup = BeautifulSoup(resp.text,'html.parser')
+                    info = [soup.find('h1',class_='profile-team-name text-ellipsis').text ,i]
+                    db.sql.execute("""INSERT OR IGNORE INTO teams (team,id,url) VALUES(?,?,?)""", (info[0],info[1],f"https://www.hltv.org/team/{i}/_"))
+                    db.database.commit()
+                    temp = soup.find('tr', class_ = 'team-row')
+                    # if temp is None:
+                    #     db.sql.execute("""DELETE from teams where id=?""",(i[1],))
+                    #     db.database.commit()
+                    #     continue
+                    while temp.find('div',class_ = 'score-cell').text == '-:-':
+                        temp = temp.find_next('tr',class_ = 'team-row')
+                    info=[]
+                    for i in range(5): 
+                        if temp is None:
+                            break
+                        info.append(temp.find('a',class_ = 'team-name team-1').text)
+                        info.append(temp.find('a', class_ = 'team-name team-2').text)
+                        info.append(temp.find('span')['data-unix'][:-3])
+                        text = ''
+                        score = temp.find('div', class_ = 'score-cell')
+                        score =  score.find('span')
+                        text+=score.text+' '
+                        score = score.find_next('span')
+                        score = score.find_next('span')
+                        text+=score.text
+                        id = temp.find('a', class_ = 'stats-button')['href'].split('/')[2]
+                        info.append(text)
+                        if db.sql.execute("""select * from matches where match_id = ?""", (id,)).fetchone() is None:
+                            db.sql.execute("""INSERT OR IGNORE into matches (first_team,second_team,match_id,TIME,score) values(?,?,?,?,?)""",\
+                            (info[0],info[1],id,info[2],info[3]))
+                            db.database.commit()
+                        info.clear()
+                        temp = temp.find_next('tr', class_ = 'team-row')
+                        # file = open('actual_teams.txt','a',encoding='utf-8')
+                        # file.write(f"https://www.hltv.org/team/{i}/_\n")
+                        # file.close()
+
 
 #regular update database with teams and matches
 
@@ -98,6 +153,9 @@ def delete_unncessary_matches():
 
 #function for main
 async def parse_functions():
+    # parse_all_actual_teams()
+
+
     parse_upcoming_matches()
     delete_unncessary_matches()
     delete_unnecessary_teams()
