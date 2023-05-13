@@ -14,7 +14,7 @@ async def update_data():
         await asyncio.sleep(600) 
         
 
-#main6
+#main
 async def main():
     await asyncio.gather(update_data(),bot_task())
 
