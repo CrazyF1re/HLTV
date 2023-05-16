@@ -1,3 +1,3 @@
 config.py
-*Db.*
+server.db
 **/__pycache__
