@@ -1,8 +1,6 @@
-import sqlite3
 import datetime
+from  global_variables import sql,database
 
-database = sqlite3.connect('server.db')
-sql = database.cursor()
 
 
 #таблица команд, (team, id, url)

@@ -1,4 +1,4 @@
-from global_variables import dp,Conditions,Teams,menu,choose_teams,delete_teams,my_teams,previous_matches,upcoming_matches,bot
+from global_variables import dp,Conditions,Teams,menu,choose_teams,delete_teams,my_teams,previous_matches,upcoming_matches,bot, sql, database
 from aiogram import types
 import db
 import emoji
@@ -11,8 +11,8 @@ async def delete_message(bot,user_id,message_id):
         return 0
 
 async def start_command(message: types.Message):
-    db.sql.execute("""INSERT OR IGNORE INTO timezone (id,time) values(?,?)""", (message.from_user.id,0))
-    db.database.commit()
+    sql.execute("""INSERT OR IGNORE INTO timezone (id,time) values(?,?)""", (message.from_user.id,0))
+    database.commit()
     await message.answer('Бот позволяет отслеживать активность выбранных команд, прошедшие матчи и те, что еще будут\n\
 /timezone - установить часовой пояс (по умолчанию UTC-0)\n\
 /help - скорая помощь \n\
@@ -221,7 +221,7 @@ async def choosing_teams_for_delete(callback_query: types.CallbackQuery):
 
 async def get_upcoming_matches(callback_query: types.CallbackQuery):
     id = callback_query.from_user.id
-    teams = db.sql.execute("""SELECT team FROM users WHERE id =?""", (id,)).fetchall()
+    teams = sql.execute("""SELECT team FROM users WHERE id =?""", (id,)).fetchall()
     list_of_matches = list(await Teams.search_upcoming_matches(teams, callback_query.from_user.id))
     string = ''
     list_of_matches.sort(key = lambda x: str(x[2]))
@@ -238,7 +238,7 @@ async def get_upcoming_matches(callback_query: types.CallbackQuery):
     await bot.send_message(callback_query.from_user.id,string, reply_markup=menu)
 
 async def get_previous_matches(callback_query: types.CallbackQuery ):
-    teams= db.sql.execute("""SELECT team FROM users WHERE id =?""", (callback_query.from_user.id,)).fetchall()
+    teams= sql.execute("""SELECT team FROM users WHERE id =?""", (callback_query.from_user.id,)).fetchall()
     menu.inline_keyboard.clear()
 
     if len(teams) == 0:
