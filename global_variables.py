@@ -5,16 +5,17 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 import sqlite3
 import datetime
 
-
+#Database 
 database = sqlite3.connect('server.db')
 sql = database.cursor()
 
 
+#Bot 
 bot = Bot(config.TOKEN)
 dp = Dispatcher(bot, storage=MemoryStorage())
 timezone_server = 7 #default timezone
 
-
+#Menu
 choose_teams = types.InlineKeyboardButton('Выбрать команду ', callback_data='choose_teams')
 my_teams = types.InlineKeyboardButton('Мои команды',callback_data='my_teams')
 delete_teams = types.InlineKeyboardButton('Удалить команду',callback_data='delete_team')
