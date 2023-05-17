@@ -80,9 +80,3 @@ dp.register_callback_query_handler(functions.get_five_matches,Text(startswith='t
 
 #дефолтный хэндлер.
 dp.register_message_handler(functions.echo_message)
-
-
-
-
-
-
