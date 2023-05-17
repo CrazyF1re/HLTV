@@ -50,7 +50,6 @@ def delete_teams(list, id):
         database.commit()
 
 def update_teams(list,id):
-    if(len(list)==0):return
     for i in list:
         sql.execute("""INSERT OR IGNORE INTO users VALUES(?,?)""", (id,i[:-1]))
         database.commit()
@@ -67,18 +66,11 @@ def update_timezone(my_time, id):
             timezone = my_time-utc
     elif(utc<12 and my_time>12 and (my_time-utc)>12):
         timezone = my_time-24-utc
-    check =sql.execute("""SELECT * FROM timezone WHERE id =?""", (id,)).fetchone()
-    if check is None:
-        sql.execute("""INSERT INTO timezone VALUES(?,?)""", (id,timezone))
-        database.commit()
-    else:
-        
-        sql.execute("""UPDATE timezone SET time = ? WHERE id =?""", (timezone,id))
-        database.commit()    
+
+    sql.execute("""INSERT OR REPLACE into timezone VALUES(?,?)""", (id,timezone))
+    database.commit()   
 
 def select_my_teams(id):
     teams = sql.execute("""SELECT team FROM users WHERE id=?""", (id,)).fetchall()
-    bd_list = []
-    for i in range(len(teams)):
-        bd_list.append(teams[i][0])
+    bd_list = [team for i in teams for team in i]
     return bd_list
