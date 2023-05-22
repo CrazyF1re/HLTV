@@ -6,23 +6,23 @@ import functions
 async def start(): #func for main.py
     await dp.start_polling()
 
-#начало диалога с ботом
+#start dialog with bot
 dp.register_message_handler(functions.start_command,commands=['start'])
 
 
-#добавить базовые инструкции
+#help command
 dp.register_message_handler(functions.help_command,commands=['help'])
 
 
-#Гглавное меню
+#Menu command
 dp.register_message_handler(functions.menu_command,commands=['menu'],state='*')
 
 
-#Chose timezone for correct time of matches
+#Timezone command
 dp.register_message_handler(functions.timezone_command,commands=['timezone'])
 
 
-#still chose timezone, process entered data
+#Handler of chose timezone
 dp.register_message_handler(functions.set_timezone2,state = Conditions.SET_TIMEZONE)
 
 
@@ -34,35 +34,35 @@ dp.register_callback_query_handler(functions.go_to_menu,text = 'back',state='*')
 dp.register_callback_query_handler(functions.back_to_teams,text = 'back_edit',state='*')
 
 
-#выбор команды
+#Handler of "Choose teams" button
 dp.register_callback_query_handler(functions.enter_searching_team,text = 'choose_teams')
 
 
-#обработка поиска команды
+#handler of entered name of team by user
 dp.register_message_handler(functions.get_teams,state=Conditions.ENTER_TEAM)
 
 
-#выбор команд
+#handler of Menu with teams choose by user
 dp.register_callback_query_handler(functions.select_teams,Text(startswith='team_'),state= Conditions.ENTER_TEAM)
 
 
-#мои команды
+#Handler of "My teams" button
 dp.register_callback_query_handler(functions.get_my_teams,text = 'my_teams')
 
 
-#обновление меню при выборе команды из списка команд
+#Handler when user chose team from list of teams (just add delete button)
 dp.register_callback_query_handler(functions.delete_choosen_team,Text(startswith='team_'),state=Conditions.DELETE_ONE_TEAM)
 
 
-#удаление выбранной команды
+#Handler of "delete" button (check upper)
 dp.register_callback_query_handler(functions.delete_one_team,text = 'delete',state=Conditions.DELETE_ONE_TEAM)
 
 
-#удалить команды (separate button)
+#Handler of "Delete team" button into main menu
 dp.register_callback_query_handler(functions.delete_choosen_teams,text='delete_team')
 
 
-#выбор команд для удаления
+#Handler of menu with teams to delete
 dp.register_callback_query_handler(functions.choosing_teams_for_delete,Text(startswith='team_'),state=Conditions.DELETE_TEAMS)
 
 
@@ -80,9 +80,3 @@ dp.register_callback_query_handler(functions.get_five_matches,Text(startswith='t
 
 #дефолтный хэндлер.
 dp.register_message_handler(functions.echo_message)
-
-
-
-
-
-

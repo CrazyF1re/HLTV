@@ -1,38 +1,42 @@
-from global_variables import dp,Conditions,Teams,menu,choose_teams,delete_teams,my_teams,previous_matches,upcoming_matches,bot
+from global_variables import dp,Conditions,Teams,menu,choose_teams,delete_teams,my_teams,previous_matches,upcoming_matches,bot, sql, database
 from aiogram import types
 import db
 import emoji
 
 
+# Deleting message, because bots can delete message which sent less 24 hours
 async def delete_message(bot,user_id,message_id):
     try:
         return await bot.delete_message(chat_id=user_id, message_id= message_id)
     except:
         return 0
 
+# /START
 async def start_command(message: types.Message):
-    db.sql.execute("""INSERT OR IGNORE INTO timezone (id,time) values(?,?)""", (message.from_user.id,0))
-    db.database.commit()
+    sql.execute("""INSERT OR IGNORE INTO timezone (id,time) values(?,?)""", (message.from_user.id,0))
+    database.commit()
     await message.answer('Бот позволяет отслеживать активность выбранных команд, прошедшие матчи и те, что еще будут\n\
-/timezone - установить часовой пояс (по умолчанию UTC-0)\n\
-/help - скорая помощь \n\
-/menu - главное меню')
+/help - иформация о коммандах \n')
 
+# /HELP
 async def help_command(message:types.Message):
-     await message.answer('Когда нибудь добавлю')
+     await message.answer('Используйте  кнопочки для получения информации о матчах.\n /timezone - установить часовой пояс (по умолчанию UTC-0)\n /menu - главное меню')
 
+# /MENU
 async def menu_command(message:types.Message):
     await dp.current_state().reset_state()
     menu.inline_keyboard.clear()
     menu.add(choose_teams,delete_teams).add(my_teams).add(previous_matches,upcoming_matches)
     await message.answer('Меню' ,reply_markup=menu)
 
+# /TIMEZONE
 async def timezone_command(message:types.Message):
     menu.inline_keyboard.clear()
     menu.add(types.InlineKeyboardButton('Назад', callback_data= 'back'))
     await message.answer(text = 'Выберите часовой пояс', reply_markup=menu)
     await dp.current_state().set_state(Conditions.SET_TIMEZONE[0])
 
+#Timezone handler
 async def set_timezone2(message:types.Message):
     try:
         timezone = int(message.text)
@@ -50,6 +54,8 @@ async def set_timezone2(message:types.Message):
         await dp.current_state().reset_state()
         await message.answer('Часовой пояс успешно сохранен', reply_markup=menu)
 
+
+#Returns main menu
 async def go_to_menu(callback_query:types.CallbackQuery):
     menu.inline_keyboard.clear()
     menu.add(choose_teams,delete_teams).add(my_teams).add(previous_matches,upcoming_matches)
@@ -57,11 +63,13 @@ async def go_to_menu(callback_query:types.CallbackQuery):
     await delete_message(bot,callback_query.from_user.id,callback_query.message.message_id)
     await bot.send_message(callback_query.from_user.id,'Меню' ,reply_markup=menu)
 
+#Returns menu with choosen teams (Condition will not change)
 async def back_to_teams(callback_query:types.CallbackQuery):
     await callback_query.message.edit_reply_markup(reply_markup=menu)
     await delete_message(bot,callback_query.from_user.id,callback_query.message.message_id)
     await bot.send_message(callback_query.from_user.id, 'Твои команды', reply_markup= menu)
 
+#Menu for write team you want to chose
 async def enter_searching_team(callback_query:types.CallbackQuery):
     menu.inline_keyboard.clear()
     menu.add(types.InlineKeyboardButton('Назад', callback_data= 'back'))
@@ -70,15 +78,15 @@ async def enter_searching_team(callback_query:types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
     return await bot.send_message(callback_query.from_user.id, 'Напишите название команды', reply_markup= menu)
 
+#Menu with found teams or some exception
 async def get_teams(message: types.Message):
 
     if(len(message.text)<=1):
-        return await message.answer('А ничу нормально разговаривай')
+        return await message.answer('Слишком короткое название команды')
     team = Teams (message.text)
 
     teams = await team.search_team_in_list()
     if (len(teams)== 0):
-        #должно будет вылезать не главное меню а что то еще
         await bot.send_message(message.chat.id,'Не найдено ни одной команды',reply_markup=menu)
     else:
         menu.inline_keyboard.clear()
@@ -89,6 +97,7 @@ async def get_teams(message: types.Message):
         menu.add(types.InlineKeyboardButton('Назад', callback_data= 'back'))
         await bot.send_message(message.chat.id,'Найденные команды',reply_markup=menu)
 
+#Handler of menu with teams
 async def select_teams(callback_query: types.CallbackQuery):
     button = int(callback_query.data.split('_')[1])
     list_of_chosen_teams = []
@@ -124,6 +133,7 @@ async def select_teams(callback_query: types.CallbackQuery):
     await callback_query.message.edit_reply_markup(reply_markup=menu)
     return
 
+#Handler of "My Teams" button
 async def get_my_teams(callback_query: types.CallbackQuery):
     teams = db.select_my_teams(callback_query.from_user.id)
     menu.inline_keyboard.clear()
@@ -143,6 +153,7 @@ async def get_my_teams(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
     return await bot.send_message(callback_query.from_user.id, answer,reply_markup=menu)
 
+#Handler of "Delete Team" button
 async def delete_choosen_team(callback_query : types.CallbackQuery):
     team = callback_query.data.split('_')[1]
     editing_menu = types.InlineKeyboardMarkup()
@@ -152,6 +163,7 @@ async def delete_choosen_team(callback_query : types.CallbackQuery):
     
     await callback_query.message.edit_reply_markup(reply_markup=editing_menu)
 
+#Another handler where you can delete only one team
 async def delete_one_team(callback_query : types.CallbackQuery):
     team = callback_query['message']['reply_markup']['inline_keyboard'][0][0]['text']
     db.delete_teams([team] ,callback_query.from_user.id)
@@ -163,6 +175,7 @@ async def delete_one_team(callback_query : types.CallbackQuery):
     await delete_message(bot,callback_query.from_user.id,callback_query.message.message_id)
     await bot.send_message(callback_query.from_user.id,'Команда удалена', reply_markup=menu)
 
+#Handler of "Menu of delete teams"
 async def delete_choosen_teams(callback_query: types.CallbackQuery):
     await delete_message(bot,callback_query.from_user.id,callback_query.message.message_id)
     teams = db.select_my_teams(callback_query.from_user.id)
@@ -182,6 +195,7 @@ async def delete_choosen_teams(callback_query: types.CallbackQuery):
         await bot.answer_callback_query(callback_query.id)
         await bot.send_message(callback_query.from_user.id, 'Твои команды',reply_markup=menu)
 
+#Handler of menu with teams choose for delete
 async def choosing_teams_for_delete(callback_query: types.CallbackQuery):
 
     button = int(callback_query.data.split('_')[1])
@@ -219,9 +233,10 @@ async def choosing_teams_for_delete(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
     await callback_query.message.edit_reply_markup(reply_markup=menu)
 
+#Hadler of "Upcoming matches" button
 async def get_upcoming_matches(callback_query: types.CallbackQuery):
     id = callback_query.from_user.id
-    teams = db.sql.execute("""SELECT team FROM users WHERE id =?""", (id,)).fetchall()
+    teams = sql.execute("""SELECT team FROM users WHERE id =?""", (id,)).fetchall()
     list_of_matches = list(await Teams.search_upcoming_matches(teams, callback_query.from_user.id))
     string = ''
     list_of_matches.sort(key = lambda x: str(x[2]))
@@ -237,8 +252,9 @@ async def get_upcoming_matches(callback_query: types.CallbackQuery):
     await delete_message(bot,callback_query.from_user.id,callback_query.message.message_id)
     await bot.send_message(callback_query.from_user.id,string, reply_markup=menu)
 
+#Handler of "Previous matches" button
 async def get_previous_matches(callback_query: types.CallbackQuery ):
-    teams= db.sql.execute("""SELECT team FROM users WHERE id =?""", (callback_query.from_user.id,)).fetchall()
+    teams= sql.execute("""SELECT team FROM users WHERE id =?""", (callback_query.from_user.id,)).fetchall()
     menu.inline_keyboard.clear()
 
     if len(teams) == 0:
@@ -257,6 +273,7 @@ async def get_previous_matches(callback_query: types.CallbackQuery ):
     await delete_message(bot,callback_query.from_user.id,callback_query.message.message_id)
     return await bot.send_message(callback_query.from_user.id, 'Выбери команду',reply_markup=menu)
 
+#Handler of choosen team to get its last 5 matches
 async def get_five_matches(callback_query: types.CallbackQuery):
     team = callback_query.data.split('_')[1]
     editing_menu = types.InlineKeyboardMarkup()
@@ -268,6 +285,5 @@ async def get_five_matches(callback_query: types.CallbackQuery):
                                   await Teams.last_5_matches(team,callback_query.from_user.id),\
                                   reply_markup=editing_menu)   
 
-async def echo_message(msg: types.Message):
-    await bot.send_message(msg.from_user.id, "Не понял что вы хотели")
-
+async def echo_message(message: types.Message):
+    await message.answer("Не понял что вы хотели")

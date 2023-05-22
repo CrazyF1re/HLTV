@@ -2,14 +2,20 @@ import config
 from aiogram import types,Bot ,Dispatcher
 from aiogram.utils.helper import Helper, ListItem
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
-import db
+import sqlite3
 import datetime
 
+#Database 
+database = sqlite3.connect('server.db')
+sql = database.cursor()
+
+
+#Bot 
 bot = Bot(config.TOKEN)
 dp = Dispatcher(bot, storage=MemoryStorage())
 timezone_server = 7 #default timezone
 
-
+#Menu
 choose_teams = types.InlineKeyboardButton('Выбрать команду ', callback_data='choose_teams')
 my_teams = types.InlineKeyboardButton('Мои команды',callback_data='my_teams')
 delete_teams = types.InlineKeyboardButton('Удалить команду',callback_data='delete_team')
@@ -35,7 +41,7 @@ class Teams:
 
     #searching team in list of teams
     async def search_team_in_list(self):
-        teams = db.sql.execute("""SELECT * from teams""").fetchall()
+        teams = sql.execute("""SELECT * from teams""").fetchall()
         result = []
         for team in teams:
             string = ''.join(team[0]).lower()
@@ -45,11 +51,11 @@ class Teams:
 
     #search upcoming matches of choosen team
     async def search_upcoming_matches(list_of_teams , id):
-            timezone_user = db.sql.execute("""SELECT time FROM timezone WHERE id=?""", (id,)).fetchone()[0]
+            timezone_user = sql.execute("""SELECT time FROM timezone WHERE id=?""", (id,)).fetchone()[0]
             all_matches = set()
 
             for team in list_of_teams:
-                matches = db.sql.execute("""SELECT distinct first_team , second_team, TIME FROM matches WHERE (first_team=? OR second_team=?) and score = '-'""", (team[0],team[0])).fetchall()
+                matches = sql.execute("""SELECT distinct first_team , second_team, TIME FROM matches WHERE (first_team=? OR second_team=?) and score = '-'""", (team[0],team[0])).fetchall()
                 if(len(matches)==0):continue    
 
                 for match in matches:
@@ -60,12 +66,12 @@ class Teams:
     
     #returns last 5 matches of choosen team
     async def last_5_matches(team,id):
-        matches=  db.sql.execute(
+        matches=  sql.execute(
             """select first_team,score,second_team, time 
             from matches 
             where (first_team=? or second_team = ?) and score<> '-'""", (team,team)).fetchall()
         matches.sort(key = lambda x: int(x[3]),reverse=True)
-        timezone_user = db.sql.execute("""select time from timezone where id=?""",(id,)).fetchone()[0]
+        timezone_user = sql.execute("""select time from timezone where id=?""",(id,)).fetchone()[0]
         string=''
         for i,match in enumerate(matches):
             if i >4:break

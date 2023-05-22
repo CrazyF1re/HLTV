@@ -1,7 +1,6 @@
 import asyncio
 import headers
 import parser_new
-
 #start bot    
 
 async def bot_task():
