@@ -16,13 +16,11 @@ async def start_command(message: types.Message):
     sql.execute("""INSERT OR IGNORE INTO timezone (id,time) values(?,?)""", (message.from_user.id,0))
     database.commit()
     await message.answer('Бот позволяет отслеживать активность выбранных команд, прошедшие матчи и те, что еще будут\n\
-/timezone - установить часовой пояс (по умолчанию UTC-0)\n\
-/help - скорая помощь \n\
-/menu - главное меню')
+/help - иформация о коммандах \n')
 
 # /HELP
 async def help_command(message:types.Message):
-     await message.answer('Когда нибудь добавлю')
+     await message.answer('Используйте  кнопочки для получения информации о матчах.\n /timezone - установить часовой пояс (по умолчанию UTC-0)\n /menu - главное меню')
 
 # /MENU
 async def menu_command(message:types.Message):
@@ -84,7 +82,7 @@ async def enter_searching_team(callback_query:types.CallbackQuery):
 async def get_teams(message: types.Message):
 
     if(len(message.text)<=1):
-        return await message.answer('А ничу нормально разговаривай')
+        return await message.answer('Слишком короткое название команды')
     team = Teams (message.text)
 
     teams = await team.search_team_in_list()
